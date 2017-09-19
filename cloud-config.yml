@@ -1,0 +1,44 @@
+azs:
+- name: z1
+- name: z2
+- name: z3
+compilation:
+  az: z1
+  network: default
+  reuse_compilation_vms: true
+  vm_type: default
+  workers: 5
+disk_types:
+- disk_size: 3000
+  name: default
+- disk_size: 50000
+  name: large
+networks:
+- name: default
+  subnets:
+  - azs:
+    - z1
+    - z2
+    - z3
+    cloud_properties:
+      security_group: concourse-nsg # This is the security group on Azure which was used when executing bosh2 create-env to create bosh director
+      subnet_name: concourse-subnet # This is the subnet on Azure which was used when executing bosh2 create-env to create bosh director
+      virtual_network_name: srajaramconcourse-vnet # This is the vnet on Azure which was used when executing bosh2 create-env to create bosh director
+    dns:
+    - 168.63.129.16
+    gateway: 10.0.1.1 # gateway is usally .1 on the subnet. This is provided on the while executing bosh2 create-env to create bosh director too
+    range: 10.0.1.0/24 # This the CIDR of subnet on IaaS. This is provided on the while executing bosh2 create-env to create bosh director too
+    reserved:
+    - 10.0.1.1/30
+    static:
+    - 10.0.1.115 # This is the static ip used for web server vm of concourse. If static IPs are not specified here, they cannot be used in deployments like concourse.yml
+  type: manual
+- name: vip
+  type: vip
+vm_types:
+- cloud_properties:
+    instance_type: Standard_D1_v2
+  name: default # This is a named reference to the VM type on IaaS. This name is used in deployments like concourse.yml
+- cloud_properties:
+    instance_type: Standard_D3_v2
+  name: large # This is a named reference to the VM type on IaaS. This name is used in deployments like concourse.yml
