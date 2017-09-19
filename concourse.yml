@@ -1,0 +1,101 @@
+---
+name: concourse # This is the name of bosh deployment. You would see it when you run bosh2 -e envname deployments
+
+releases:
+- name: concourse # This is the name of concourse release uploaded to BOSH. You would see it when you run bosh2 -e envname releases
+  version: latest
+- name: garden-runc # This is the name of concourse release uploaded to BOSH. You would see it when you run bosh2 -e envname releases
+  version: latest
+
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty # This is the name of concourse stemcell uploaded to BOSH. You would see it when you run bosh2 -e envname stemcells
+  version: latest
+
+instance_groups:
+- name: web
+  instances: 1
+  vm_type: default # This vm_type must exist in the cloud-config. You would see it when you run bosh2 -e envname cloud-config
+  stemcell: trusty # This is the name stemcell alias from the stemcells section above
+  azs: [z1]
+  networks:
+  - name: default
+    static_ips:
+    - 10.0.1.115 # This is the static ip assigned to the web vm instance of concourse. This has to be declared as static ip in cloud-config if the concourse deployent has to succeed
+  jobs:
+  - name: atc
+    release: concourse
+    properties:
+      # replace with your CI's externally reachable URL, e.g. https://ci.foo.com
+      external_url: http://52.183.78.215:8080
+
+      # replace with username/password, or configure GitHub auth
+      basic_auth_username: admin # This is the user id for concourse to login on successful installation
+      basic_auth_password: admin # This is the password for concourse to login on successful installation
+
+      # replace with your SSL cert and key
+      #tls_cert: REPLACE_ME # This can be used if you prefer to use https for the concourse instance under installation
+      #tls_key: REPLACE_ME # This can be used if you prefer to use https for the concourse instance under installation
+
+      postgresql_database: &atc_db atc
+  - name: tsa
+    release: concourse
+    properties:
+      authorized_keys:
+        - ssh-rsa AAAAB3NzaC1yc2EAAAA example...... ubuntu@jumpbox
+      host_key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        MIIEpAIBAAKCAQEA5EhzNwet5ZNj0HYkXuk1IAvXnmB7sEGTo9jJvwqS4yb612J6
+        n1T3VnBPxb7JTIur3NvjioZ3wgj+GXAKR2plnWyXtz0JvxNYzSIalv+BiqBmbNsf
+        .................................example........................
+        93104p/5UPIF1qUaCZLmi2YF+JabEMXPSNRMoMmu982Cb9K5PPY/vxKtmKGKuAKr
+        ocihchQPaANWnaSK+vHcZCrIX2UdAZW6kS0opnUn3Sj31fKa/4HfBQ==
+        -----END RSA PRIVATE KEY-----
+      host_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAA example........ ubuntu@jumpbox"
+
+- name: db
+  instances: 1
+  # replace with a VM type from your BOSH Director's cloud config
+  vm_type: default
+  stemcell: trusty
+  # replace with a disk type from your BOSH Director's cloud config
+  persistent_disk_type: default
+  azs: [z1]
+  networks: [{name: default}]
+  jobs:
+  - name: postgresql
+    release: concourse
+    properties:
+      databases:
+      - name: *atc_db
+        # make up a role and password
+        role: admin
+        password: admin
+
+- name: worker
+  instances: 1
+  # replace with a VM type from your BOSH Director's cloud config
+  vm_type: large
+  stemcell: trusty
+  azs: [z1]
+  networks: [{name: default}]
+  jobs:
+  - name: groundcrew
+    release: concourse
+    properties: {}
+  - name: baggageclaim
+    release: concourse
+    properties: {}
+  - name: garden
+    release: garden-runc
+    properties:
+      garden:
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+
+update:
+  canaries: 1
+  max_in_flight: 1
+  serial: false
+  canary_watch_time: 1000-60000
+  update_watch_time: 1000-60000
