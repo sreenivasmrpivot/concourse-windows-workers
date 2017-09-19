@@ -1,0 +1,47 @@
+---
+# This is the name of bosh deployment. You would see it when you run bosh2 -e envname deployments
+name: concourse-windows
+releases:
+# This is the name of concourse release uploaded to BOSH. You would see it when you run bosh2 -e envname releases
+- name: concourse-windows-worker
+  version: latest
+stemcells:
+- alias: windows
+  # This is the name of concourse stemcell uploaded to BOSH. You would see it when you run bosh2 -e envname stemcells
+  os: windows2012R2
+  version: latest
+instance_groups:
+- name: windows_worker
+  instances: 3
+  # This vm_type must exist in the cloud-config. You would see it when you run bosh2 -e envname cloud-config
+  vm_type: large
+  # This is the name stemcell alias from the stemcells section above
+  stemcell: windows
+  azs: [z1]
+  networks: [{name: default}]
+  jobs:
+  - name: concourse_windows
+    release: concourse-windows-worker
+    templates:
+    - name: concourse_windows
+    properties:
+      concourse_windows:
+        # This is the internal IP of the concourse web VM which was deployed in course deployment
+        tsa_host: 52.183.78.215
+        # This is the public key of tsa (taskey.pub) which was generated using the command ssh-keygen -f tsakey -t rsa -N ''
+        tsa_public_key: "ssh-rsa AAAA example...... ubuntu@jumpbox"
+        # This is the private key of worker (workerkey) which was generated using the command ssh-keygen -f workerkey -t rsa -N ''
+        tsa_worker_private_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          MIIEowIBAAKCAQEAoWEo6D899fpZ3YJnHxUb4MlDHTW6F7m5O5G2Kkp4oe02bYDj
+          pA65dHa9dEyghisyXXzYiEkQKf+kXTS6RVOyKqeb6oSZyHAegQQUN/zSTlTMGWtw
+          .........................example................................
+          piV+z1Qb1teVhJxlBGazCaody+MrbjyFEqeyLKemfNZq0DeKLOhDKO+eZDVzDixg
+          /xIu/6YkYmvvu53LZ/9NJDckPBnRGYjafWac9x3jBZ17SG0qhzNw
+          -----END RSA PRIVATE KEY-----
+update:
+  canaries: 1
+  max_in_flight: 1
+  serial: false
+  canary_watch_time: 1000-60000
+  update_watch_time: 1000-60000
