@@ -14,7 +14,7 @@ Complete the below steps to create an Ubuntu jumpbox to install BOSH Director.
 
     ```sh
     sudo wget https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-2.0.28-linux-amd64
-    chmod +x bosh-cli-*
+    sudo chmod +x bosh-cli-*
     sudo mv bosh-cli-* /usr/local/bin/bosh
     ```
 
